@@ -47,7 +47,7 @@ bot_admins = ["289336202"]
 version = "1.5.0"
 
 home = "Welcome or Welcome back <a href='tg://user?id={user_id}'>{name}</a>!\nWith this bot you can create, edit, and share, little comment boards.\nEveryone can ✒️ Leave a comment to your board, you too! and it's absolutely free.\n\nFor first, use one of the buttons below to interact with the bot.\n\nDeveloped with LOV by <a href='tg://user?id=289336202'>StivenFocs</a>\nv{version}\nUpdate news: now back online"
-home_kb = InlineKeyboardMarkup([[InlineKeyboardButton("➕ New board", callback_data="post_new"),InlineKeyboardButton("💾 My boards",callback_data="post_mine")],[InlineKeyboardButton("❤️ Donate",url="https://buymeacoffee.com/stivenfocs"),InlineKeyboardButton("📂 Source code", url="https://github.com/StivenFocs/CommentsBoard-Telegram-Bot")],[InlineKeyboardButton("ℹ️ Terms of Use",url="https://telegra.ph/CommentsBoardBot---Terms-of-use-01-05"),InlineKeyboardButton("📣 Channel",url="https://t.me/CommentsBoardChannel")]])
+home_kb = InlineKeyboardMarkup([[InlineKeyboardButton("➕ New board", callback_data="post_new"),InlineKeyboardButton("💾 My boards",callback_data="post_mine")],[InlineKeyboardButton("❤️ Donate",url="https://ko-fi.com/stivenfocs"),InlineKeyboardButton("📂 Source code", url="https://github.com/StivenFocs/CommentsBoardBot")],[InlineKeyboardButton("ℹ️ Terms of Use",url="https://telegra.ph/CommentsBoardBot---Terms-of-use-01-05"),InlineKeyboardButton("📣 Channel",url="https://t.me/+EQRstEPaBf04MDk0")]])
 
 admin_home = "Hey Hey, Stiven! *my favorite developer*\n\nHere some stats:\nTotal boards: {total_boards}\nTotal users: {total_users}"
 admin_home_kb = None
