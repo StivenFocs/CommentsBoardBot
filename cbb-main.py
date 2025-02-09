@@ -4,6 +4,7 @@ import sys
 from pyrogram import *
 from pyrogram.types import *
 from pyrogram.errors import *
+from pyrogram.enums import *
 from random import randrange
 
 import sqlite3
@@ -15,10 +16,20 @@ import json
 import termcolor
 from time import gmtime, strftime
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 ################
 
-bot = Client("commentsBoardBot_session",0,"")
-bot.start()
+API_ID = os.getenv('API_ID')
+API_HASH = os.getenv('API_HASH')
+TOKEN = os.getenv('TOKEN')
+
+################
+
+bot = Client(name="commentsBoardBot_session", api_id=str(API_ID), api_hash=str(API_HASH), bot_token=str(TOKEN))
+bot = bot.start()
 
 database = sqlite3.connect("commentsBoardDatabase.db")
 cursor = database.cursor()
@@ -33,9 +44,9 @@ bot_admins = ["289336202"]
 
 ################
 
-version = "1.4.7"
+version = "1.5.0"
 
-home = "Welcome or Welcome back <a href='tg://user?id={user_id}'>{name}</a>!\nWith this bot you can create, edit, and share, little comment boards.\nEveryone can ✒️ Leave a comment to your board, you too! and it's absolutely free.\n\nFor first, use one of the buttons below to interact with the bot.\n\nDeveloped with LOV by <a href='tg://user?id=289336202'>StivenFocs</a>\nv{version}\nUpdate news: now 200+ board title and comments length!!"
+home = "Welcome or Welcome back <a href='tg://user?id={user_id}'>{name}</a>!\nWith this bot you can create, edit, and share, little comment boards.\nEveryone can ✒️ Leave a comment to your board, you too! and it's absolutely free.\n\nFor first, use one of the buttons below to interact with the bot.\n\nDeveloped with LOV by <a href='tg://user?id=289336202'>StivenFocs</a>\nv{version}\nUpdate news: now back online"
 home_kb = InlineKeyboardMarkup([[InlineKeyboardButton("➕ New board", callback_data="post_new"),InlineKeyboardButton("💾 My boards",callback_data="post_mine")],[InlineKeyboardButton("❤️ Donate",url="https://buymeacoffee.com/stivenfocs"),InlineKeyboardButton("📂 Source code", url="https://github.com/StivenFocs/CommentsBoard-Telegram-Bot")],[InlineKeyboardButton("ℹ️ Terms of Use",url="https://telegra.ph/CommentsBoardBot---Terms-of-use-01-05"),InlineKeyboardButton("📣 Channel",url="https://t.me/CommentsBoardChannel")]])
 
 admin_home = "Hey Hey, Stiven! *my favorite developer*\n\nHere some stats:\nTotal boards: {total_boards}\nTotal users: {total_users}"
@@ -65,7 +76,7 @@ def default_tables():
         print("Created table 'users'")
     except Exception as ex:
         none = None
-    
+
     try:
         cursor.execute('CREATE TABLE "posts" ("id" INTEGER, "title" TEXT, "comments" TEXT, "messages" TEXT, "owner" TEXT, "share_notifications" TEXT, "open" TEXT, "privacy_mode" TEXT, "anonymous_mode" TEXT);')
         print("Created table 'posts'")
@@ -109,7 +120,7 @@ def parse_group_entry(entry):
         entry["open"] = new_array_[6]
         entry["privacy_mode"] = new_array_[7]
         entry["anonymous_mode"] = new_array_[8]
-        
+
         new_array.append(entry)
     return new_array
 
@@ -123,14 +134,14 @@ def board_comments(board_data):
             name = comment["name"].replace("////+!!!+-,..-,.,,,,,,,OOf-..,,,!!+///", "'")
             comment_text = comment["text"].replace("////+!!!+-,..-,.,,,,,,,OOf-..,,,!!+///", "'")
             comment_text = comment_text.replace("\n"," ")
-            
+
             if str(board_data["anonymous_mode"]).lower() == "true":
                 text = text + "👤 Anonymous: " + comment_text + "\n"
             elif str(board_data["privacy_mode"]).lower() == "true":
                 text = text + name + ": " + comment_text + "\n"
             else:
                 text = text + "<a href='tg://user?id=" + comment["id"] + "'>" + name + "</a>: " + comment_text + "\n"
-    
+
     return text
 
 def board_text(board_data):
@@ -163,13 +174,13 @@ def placeholder(text, handler, board_data):
             name = name.replace("<","&lt;")
             name = name.replace(">","&gt;")
             replaces.append({"from": "{name}", "to": str(name)})
-            
+
             replaces.append({"from": "{user_id}", "to": str(handler.from_user.id)})
             if isinstance(handler, Message):
                 replaces.append({"from": "{chat_id}", "to": str(handler.chat.id)})
             if isinstance(handler, CallbackQuery):
                 replaces.append({"from": "{chat_id}", "to": str(handler.message.chat.id)})
-    
+
     if board_data is not None:
         board_id = str(board_data["id"])
         decoded_title = board_data["title"].replace("////+!!!+-,..-,.,,,,,,,OOf-..,,,!!+///", "'")
@@ -196,7 +207,7 @@ def placeholder(text, handler, board_data):
             print("Messages reset for the board: " + str(board_id))
         replaces.append({"from": "{board_comments_amount}", "to": board_comments_number})
         replaces.append({"from": "{board_messages_amount}", "to": board_messages_number})
-    
+
     for replace in replaces:
         text = text.replace(str(replace["from"]), str(replace["to"]))
 
@@ -251,7 +262,7 @@ def editCommentsKb(board_id):
     board_data = parse_entry(comparedentry)
 
     text = ""
-    
+
     comments = board_data["comments"]
     comments = literal_eval(comments)
 
@@ -261,7 +272,7 @@ def editCommentsKb(board_id):
         count = 0
         for comment in comments:
             comments_buttons.append(InlineKeyboardButton(str(count), callback_data="post_edit_" + str(board_id) + "_comments_" + str(count)))
-            
+
             if len(comments_buttons) >= 5:
                 rows.append(comments_buttons)
                 comments_buttons = []
@@ -272,7 +283,7 @@ def editCommentsKb(board_id):
                 rows.append(comments_buttons)
                 comments_buttons = []
                 break
-    
+
     rows.append([clear_comments_btn])
     rows.append([InlineKeyboardButton("🔙 Back",callback_data="post_edit_" + str(board_id))])
     return InlineKeyboardMarkup(rows)
@@ -284,15 +295,15 @@ async def send_edit_panel(message, board_id):
         chat_id = str(message.chat.id)
     mid = ""
     if  isinstance(message, CallbackQuery):
-        mid = message.message.message_id
+        mid = message.message.id
 
     comparedentry = [a for a in cursor.execute("SELECT * FROM posts WHERE id='" + str(board_id) + "';")]
     if len(comparedentry) > 0:
         board_data = parse_entry(comparedentry)
         if  isinstance(message, CallbackQuery):
-            await bot.edit_message_text(user_id, mid, placeholder(messages_board_panel, message, board_data),parse_mode="HTML",reply_markup=editBoardKb(str(board_id)), disable_web_page_preview=True)
+            await bot.edit_message_text(user_id, mid, placeholder(messages_board_panel, message, board_data),parse_mode=ParseMode.HTML,reply_markup=editBoardKb(str(board_id)), disable_web_page_preview=True)
         else:
-            await bot.send_message(chat_id, placeholder(messages_board_panel, message, board_data),parse_mode="HTML",reply_markup=editBoardKb(str(board_id)), disable_web_page_preview=True)
+            await bot.send_message(chat_id, placeholder(messages_board_panel, message, board_data),parse_mode=ParseMode.HTML,reply_markup=editBoardKb(str(board_id)), disable_web_page_preview=True)
     else:
         if  isinstance(message, CallbackQuery):
             await query.answer("Error! Unrecognized board id.")
@@ -305,7 +316,7 @@ async def send_comments_panel(message, board_id):
         chat_id = str(message.chat.id)
     mid = ""
     if  isinstance(message, CallbackQuery):
-        mid = message.message.message_id
+        mid = message.message.id
 
     comparedentry = [a for a in cursor.execute("SELECT * FROM posts WHERE id='" + str(board_id) + "';")]
     if len(comparedentry) > 0:
@@ -327,9 +338,9 @@ async def send_comments_panel(message, board_id):
                 count = count + 1
 
         if  isinstance(message, CallbackQuery):
-            await bot.edit_message_text(user_id, mid, placeholder(text, message, board_data),parse_mode="HTML",reply_markup=editCommentsKb(str(board_id)), disable_web_page_preview=True)
+            await bot.edit_message_text(user_id, mid, placeholder(text, message, board_data),parse_mode=ParseMode.HTML,reply_markup=editCommentsKb(str(board_id)), disable_web_page_preview=True)
         else:
-            await bot.send_message(chat_id, placeholder(text, message, board_data),parse_mode="HTML",reply_markup=editCommentsKb(str(board_id)), disable_web_page_preview=True)
+            await bot.send_message(chat_id, placeholder(text, message, board_data),parse_mode=ParseMode.HTML,reply_markup=editCommentsKb(str(board_id)), disable_web_page_preview=True)
     else:
         if  isinstance(message, CallbackQuery):
             await query.answer("Error! Unrecognized board id.")
@@ -355,7 +366,7 @@ async def refresh_board(board_id):
                         await bot.edit_inline_text(str(message), board_text(board_data), disable_web_page_preview=True)
                 except Exception as ex:
                     none = None
-            
+
             #print("Refreshed the board: " + str(board_id))
         except Exception as ex:
             print("An error occurred while trying to refresh the board '" + str(board_id) + "'")
@@ -381,12 +392,14 @@ def add_chat(chat_id):
 async def onMsg(client,message):
     global messages
 
+    print(message)
+
     #print("onMessage event")
     #print(message)
 
     if message.edit_date is not None:
         return
-    if message.message_id is None:
+    if message.id is None:
         return
     if message.chat.id is None:
         return
@@ -407,7 +420,7 @@ async def onMsg(client,message):
     add_chat(chat_id)
 
     log_string = now_time() + termcolor.colored("NewMessage", "cyan") + " from " + termcolor.colored(str(user_id), "green") + " in " + termcolor.colored(str(chat_id), "yellow")  + " | text: '" + termcolor.colored(str(message.text), "magenta") + "' ="
-    if chat_type == "private":
+    if chat_type == ChatType.PRIVATE:
         if creating_post.get(user_id) is not None:
             log_string = log_string + " " + termcolor.colored("creating_board", "green") + " = "
 
@@ -430,7 +443,7 @@ async def onMsg(client,message):
                 log_string = log_string + termcolor.colored("incomplete post creating structure", "yellow")
                 print(log_string)
                 return
-            
+
             if creating_post[user_id]["step"] == 0:
                 if len(message.text) <= 250:
                     board_id = creating_post[user_id]["id"]
@@ -443,12 +456,12 @@ async def onMsg(client,message):
 
                     board_data = create_board(creating_post[user_id])
                     del creating_post[user_id]
-                    
+
                     log_string = log_string + termcolor.colored("created successfully", "green")
 
-                    await bot.send_message(chat_id, placeholder(messages_board_created, message, board_data),parse_mode="HTML",reply_markup=editBoardKb(str(board_id)), disable_web_page_preview=True)
+                    await bot.send_message(chat_id, placeholder(messages_board_created, message, board_data),parse_mode=ParseMode.HTML,reply_markup=editBoardKb(str(board_id)), disable_web_page_preview=True)
                 else:
-                    await bot.send_message(chat_id, placeholder("250 Characters maximum limit exceeded", message, None), parse_mode="HTML")
+                    await bot.send_message(chat_id, placeholder("250 Characters maximum limit exceeded", message, None), parse_mode=ParseMode.HTML)
 
                     log_string = log_string + termcolor.colored("250 Characters maximum limit exceeded", "yellow")
             else:
@@ -472,7 +485,7 @@ async def onMsg(client,message):
                 log_string = log_string + termcolor.colored("Operation cancelled", "yellow")
                 print(log_string)
                 return
-            
+
             edit_data = editing_post[user_id]
             board_id = edit_data["id"]
 
@@ -489,15 +502,15 @@ async def onMsg(client,message):
                                 title_text = message.text.replace("<", "&lt;")
                                 title_text = title_text.replace(">", "&gt;")
                                 title_encoded = title_text.replace("'", "////+!!!+-,..-,.,,,,,,,OOf-..,,,!!+///")
-                                
+
                                 if editing_post.get(user_id) is not None:
                                     del editing_post[user_id]
-                                
+
                                 try:
                                     cursor.execute("UPDATE posts SET title='" + str(title_encoded) + "' WHERE id='" + str(board_id) + "';")
                                     database.commit()
                                     await bot.send_message(chat_id, placeholder("Title edited successfully!", message, None), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back",callback_data="post_edit_" + str(board_id))]]))
-                                    
+
                                     log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("edited successfully", "green")
 
                                     await refresh_board(board_id)
@@ -508,7 +521,7 @@ async def onMsg(client,message):
 
                                     log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("Couldn't edit the title", "red")
                             else:
-                                await bot.send_message(chat_id, placeholder("250 Characters maximum limit exceeded", message, None), parse_mode="HTML")
+                                await bot.send_message(chat_id, placeholder("250 Characters maximum limit exceeded", message, None), parse_mode=ParseMode.HTML)
 
                                 log_string = log_string + termcolor.colored("250 Characters maximum limit exceeded", "yellow")
                         else:
@@ -521,21 +534,21 @@ async def onMsg(client,message):
                     else:
                         del editing_post[user_id]
                         await bot.send_message(chat_id, "You're not the board owner!\n\nOperation cancelled.")
-                        
+
                         print("A non-creator tried to edit an unowned board")
 
                         log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("tried to edit an un-owned board", "red")
                 else:
                     del editing_post[user_id]
                     await bot.send_message(chat_id, "This board does not exist!\n\nOperation cancelled.")
-                    
+
                     print("Unexisting board, title editing")
 
                     log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("unexisting board", "cyan")
             except Exception as ex:
                 del editing_post[user_id]
                 await bot.send_message(chat_id, "An error occurred while trying to perform this task\nError code: #UKERRO\n\nOperation cancelled.")
-                
+
                 print("An error occurred while trying to perform a board edit task")
                 print(ex)
 
@@ -546,7 +559,7 @@ async def onMsg(client,message):
             if message.via_bot is not None:
                 await bot.send_message(chat_id, "You are actually in a text operation, the bot is waiting a text from you.\n\n/cancel")
                 return
-            
+
             try:
                 board_id = answering[user_id]
 
@@ -583,7 +596,7 @@ async def onMsg(client,message):
                                 name = name.replace("<","&lt;")
                                 name = name.replace(">","&gt;")
                                 name = name.replace("'","////+!!!+-,..-,.,,,,,,,OOf-..,,,!!+///")
-                                
+
                                 text = message.text.replace("<", "&lt;")
                                 text = text.replace(">","&gt;")
                                 text = text.replace("'","////+!!!+-,..-,.,,,,,,,OOf-..,,,!!+///")
@@ -629,7 +642,7 @@ async def onMsg(client,message):
                         print(ex)
 
                         await bot.send_mesage(chat_id,"Couldn't add the comment")
-                        
+
                         log_string = log_string + " " + termcolor.colored("Couldn't add the comment", "red")
 
                         if answering.get(user_id) is not None:
@@ -646,9 +659,9 @@ async def onMsg(client,message):
                 print(ex)
 
                 await bot.send_mesage(chat_id,"Couldn't get/find the target board")
-                
+
                 log_string = log_string + " " + termcolr.colored("Couldn't get/find the target board", "cyan")
-                
+
                 if answering.get(user_id) is not None:
                     del answering[user_id]
         else:
@@ -680,7 +693,7 @@ async def onMsg(client,message):
 
                         log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("unexisting board", "yellow")
                 else:
-                    await bot.send_message(chat_id, placeholder(home, message, None),parse_mode="HTML",reply_markup=home_kb, disable_web_page_preview=True)
+                    await bot.send_message(chat_id, placeholder(home, message, None),parse_mode=ParseMode.HTML,reply_markup=home_kb, disable_web_page_preview=True)
 
                     log_string = log_string + termcolor.colored("Sent the home", "green")
             elif cmd[0].lower() == "/admin":
@@ -693,7 +706,7 @@ async def onMsg(client,message):
             elif cmd[0].lower() == "/users":
                 if str(chat_id) in bot_admins:
                     temp_sent_message = await bot.send_message(chat_id, placeholder("Calculating data, it can may take some minutes...", message, None))
-                    
+
                     users_total = {}
                     unavailable_users = 0
                     users = [a for a in cursor.execute("SELECT * FROM users")]
@@ -707,18 +720,18 @@ async def onMsg(client,message):
 
                                 if users_total.get(lang) == None:
                                     users_total[lang] = 0
-                                
+
                                 users_total[lang] = users_total[lang] + 1
                             else:
                                 unavailable_users = unavailable_users + 1
                         except Exception as ex:
                             print(ex)
-                    
+
                     users_total_sorted = sorted(users_total, key= lambda x: users_total[x], reverse=True)
                     users_text = ""
                     for lang in users_total_sorted:
                         users_text = users_text + "\n<b>" + lang + "</b>: " + str(users_total[lang])
-                    
+
                     await temp_sent_message.edit_text(users_text + "\n\nAvailable users: " + str(len(users) - unavailable_users) + "\nUnavailable users: " + str(unavailable_users))
 
                     log_string = log_string + termcolor.colored("sent the users counter", "green")
@@ -746,9 +759,9 @@ async def onMsg(client,message):
 async def callback(client,query):
 
     #print("onCallbackQuery event")
-    #print(query)
+    print(query)
 
-    mid = query.message.message_id
+    mid = query.message.id
     chat_type = query.message.chat.type
     chat_id = query.message.chat.id
     user_id = query.from_user.id
@@ -759,7 +772,7 @@ async def callback(client,query):
     if creating_post.get(user_id) is None and editing_post.get(user_id) is None and answering.get(user_id) is None:
         data = query.data.split("_")
 
-        if str(chat_type) == "private":
+        if chat_type == ChatType.PRIVATE:
             add_chat(chat_id)
 
             if data[0] == "home":
@@ -784,7 +797,7 @@ async def callback(client,query):
                             comparedentry = [a for a in cursor.execute("SELECT 'id' FROM posts WHERE id='" + str(new_post_id) + "';")]
                             if len(comparedentry) <= 0:
                                 break
-                        
+
                         creating_post[user_id]["id"] = new_post_id
                         creating_post[user_id]["step"] = 0
                         await bot.edit_message_text(chat_id, mid, placeholder("Panel closed due to a new board creation.", query, None))
@@ -800,9 +813,9 @@ async def callback(client,query):
                             for board in boards:
                                 boards_list_keyboard.append([InlineKeyboardButton(str(board["title"]).replace("////+!!!+-,..-,.,,,,,,,OOf-..,,,!!+///", "'"), callback_data="post_edit_" + str(board["id"]))])
                             boards_list_keyboard.append([InlineKeyboardButton("🔙 Back",callback_data="home")])
-                            
+
                             await bot.edit_message_text(chat_id, mid, placeholder(messages_boards_list, query, None), reply_markup=InlineKeyboardMarkup(boards_list_keyboard), disable_web_page_preview=True)
-                            
+
                             log_string = log_string + termcolor.colored("Returned to boards list", "green")
                         else:
                             await query.answer(placeholder(messages_no_boards, query, None))
@@ -848,7 +861,7 @@ async def callback(client,query):
                                                         try:
                                                             comment_to_delete = int(data[4])
                                                             comments = literal_eval(board_data["comments"])
-                                                            
+
                                                             new_comments = []
                                                             count = 0
                                                             for comment in comments:
@@ -857,7 +870,7 @@ async def callback(client,query):
                                                                 count = count + 1
 
                                                             cursor.execute("UPDATE posts SET comments='" + json.dumps(new_comments) + "' WHERE id='" + str(board_id) + "';")
-                                                            
+
                                                             await refresh_board(board_id)
 
                                                             await query.answer("Comment deleted")
@@ -891,7 +904,7 @@ async def callback(client,query):
                                                     await send_edit_panel(query, board_id)
                                                 except Exception as ex:
                                                     none = None
-                                            
+
                                                 log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("tried to edit the board's comments but the board is closed", "yellow")
                                         elif data[3] == "clearComments":
                                             if str(board_data["open"]) == "true":
@@ -919,7 +932,7 @@ async def callback(client,query):
                                                     log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("tried to clear the board but it's empty", "yellow")
                                             else:
                                                 await query.answer("You can't clear the board when it's closed")
-                                            
+
                                                 log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("tried to clear the board when it's closed", "yellow")
                                         elif data[3] == "shareNotifications":
                                             initial_toggle = str(board_data["share_notifications"])
@@ -936,13 +949,13 @@ async def callback(client,query):
                                                     database.commit()
 
                                                     final_toggle = termcolor.colored("true", "green")
-                                                
+
                                                 await query.answer("successfully toggled the share notifications option")
                                                 try:
                                                     await send_edit_panel(query, board_id)
                                                 except Exception as ex:
                                                     none = None
-                                                
+
                                                 log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("share notification toggled", "green") + " " + final_toggle
                                             except Exception as ex:
                                                 await query.answer("Couldn't switch the share notifications option")
@@ -966,15 +979,15 @@ async def callback(client,query):
                                                     database.commit()
 
                                                     final_toggle = termcolor.colored("true", "green")
-                                                
+
                                                 await query.answer("successfully toggled the privacy mode option")
                                                 try:
                                                     await send_edit_panel(query, board_id)
                                                 except Exception as ex:
                                                     none = None
-                                                
+
                                                 log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("privacy mode toggled", "green") + " " + final_toggle
-                                            
+
                                                 await refresh_board(board_id)
                                             except Exception as ex:
                                                 await query.answer("Couldn't switch the privacy mode option")
@@ -998,15 +1011,15 @@ async def callback(client,query):
                                                     database.commit()
 
                                                     final_toggle = termcolor.colored("true", "green")
-                                                
+
                                                 await query.answer("successfully toggled the anonymous mode option")
                                                 try:
                                                     await send_edit_panel(query, board_id)
                                                 except Exception as ex:
                                                     none = None
-                                                
+
                                                 log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("anonymouse mode toggled", "green") + " " + final_toggle
-                                            
+
                                                 await refresh_board(board_id)
                                             except Exception as ex:
                                                 await query.answer("Couldn't switch the anonymous mode option")
@@ -1019,10 +1032,10 @@ async def callback(client,query):
                                             comments = literal_eval(board_data["comments"])
                                             if len(comments) > 0:
                                                 try:
-                                                    
+
                                                     initial_toggle = str(board_data["open"])
                                                     fianl_toggle = ""
-                                                    
+
                                                     if str(board_data["open"]) == "true":
                                                         cursor.execute("UPDATE posts SET open='false' WHERE id='" + str(board_id) +"';")
                                                         database.commit()
@@ -1033,7 +1046,7 @@ async def callback(client,query):
                                                         database.commit()
 
                                                         final_toggle = termcolor.colored("true", "green")
-                                                    
+
                                                     await query.answer("successfully toggled the board")
 
                                                     try:
@@ -1042,7 +1055,7 @@ async def callback(client,query):
                                                         none = None
 
                                                     log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("toggled", "green") + " " + final_toggle
-                                                
+
                                                     await refresh_board(board_id)
                                                 except Exception as ex:
                                                     await query.answer("Couldn't toggle the board")
@@ -1205,7 +1218,7 @@ async def inline(client,query):
             await bot.answer_inline_query(query.id, results=[InlineQueryResultArticle("No Results",InputTextMessageContent("No results", disable_web_page_preview=True))],cache_time=1,is_personal=True)
 
             log_string = log_string + termcolor.colored(" no results", "yellow")
-    
+
     print(log_string)
 
 
@@ -1217,7 +1230,7 @@ async def inline_choice(client,result):
     global messages
 
     #print("on_chosen_inline_result event")
-    #print(result)
+    print(result)
 
     user_id = result.from_user.id
     board_id = result.result_id
@@ -1268,7 +1281,7 @@ async def inline_choice(client,result):
                 await bot.edit_inline_text(result.inline_message_id, "An error occurred while trying to link this inline message to his board.", disable_web_page_preview=True)
             except Exception as ex:
                 none = None
-            
+
             log_string = log_string + termcolor.colored(" Couldn't save a board message", "red")
     else:
         log_string = log_string + termcolor.colored(" No Results", "green")

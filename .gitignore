@@ -1,0 +1,4 @@
+.env
+commentsBoardBot_session.session
+commentsBoardBot_session.session-journal
+commentsBoardDatabase.db
