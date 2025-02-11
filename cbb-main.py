@@ -392,11 +392,6 @@ def add_chat(chat_id):
 async def onMsg(client,message):
     global messages
 
-    print(message)
-
-    #print("onMessage event")
-    #print(message)
-
     if message.edit_date is not None:
         return
     if message.id is None:
@@ -757,9 +752,6 @@ async def onMsg(client,message):
 
 @bot.on_callback_query()
 async def callback(client,query):
-
-    #print("onCallbackQuery event")
-    print(query)
 
     mid = query.message.id
     chat_type = query.message.chat.type
@@ -1176,9 +1168,6 @@ async def callback(client,query):
 async def inline(client,query):
     global messages
 
-    #print("onInlineQuery event")
-    #print(query)
-
     user_id = query.from_user.id
 
     default_tables()
@@ -1228,9 +1217,6 @@ async def inline(client,query):
 @bot.on_chosen_inline_result()
 async def inline_choice(client,result):
     global messages
-
-    #print("on_chosen_inline_result event")
-    print(result)
 
     user_id = result.from_user.id
     board_id = result.result_id
