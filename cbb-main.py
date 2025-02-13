@@ -220,7 +220,7 @@ def create_board(new_board_data):
         cursor.execute("INSERT INTO posts('id','title','comments','messages','owner','share_notifications','open','privacy_mode') VALUES ('" + str(new_board_data["id"]) + "','" + title_encoded + "','[]','[]','" + str(new_board_data["owner"]) + "','false','true','false');")
         database.commit()
 
-        print("Board created (" + str(new_board_data["id"]) + ",'" + str(title_encoded) + "','" + str(new_board_data["owner"]) + "')")
+        #print("Board created (" + str(new_board_data["id"]) + ",'" + str(title_encoded) + "','" + str(new_board_data["owner"]) + "')")
 
         comparedentry = [a for a in cursor.execute("SELECT * FROM posts WHERE id='" + str(new_board_data["id"]) + "';")]
         return parse_entry(comparedentry)
@@ -452,9 +452,10 @@ async def onMsg(client,message):
                     board_data = create_board(creating_post[user_id])
                     del creating_post[user_id]
 
-                    log_string = log_string + termcolor.colored("created successfully", "green")
+                    log_string = now_time() + termcolor.colored("Board created", "cyan") + " by " + termcolor.colored(str(user_id), "green")
 
                     await bot.send_message(chat_id, placeholder(messages_board_created, message, board_data),parse_mode=ParseMode.HTML,reply_markup=editBoardKb(str(board_id)), disable_web_page_preview=True)
+                    
                 else:
                     await bot.send_message(chat_id, placeholder("250 Characters maximum limit exceeded", message, None), parse_mode=ParseMode.HTML)
 
@@ -490,7 +491,7 @@ async def onMsg(client,message):
                     board_data = parse_entry(comparedentry)
 
                     if str(chat_id) == str(board_data["owner"]):
-                        if edit_data["section"] == "title":
+                        if edit_data["section"] == "title":                        
                             log_string = log_string + "board (" + str(board_id) + ") section: 'title' = "
 
                             if len(message.text) <= 250:
@@ -506,6 +507,9 @@ async def onMsg(client,message):
                                     database.commit()
                                     await bot.send_message(chat_id, placeholder("Title edited successfully!", message, None), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back",callback_data="post_edit_" + str(board_id))]]))
 
+                                    log_string = now_time() + termcolor.colored("NewMessage", "cyan") + " from " + termcolor.colored(str(user_id), "green") + " in " + termcolor.colored(str(chat_id), "yellow") + "' ="
+                                    log_string = log_string + " " + termcolor.colored("editing_post", "yellow") + " = "
+                                    log_string = log_string + "board (" + str(board_id) + ") section: 'title' = "
                                     log_string = log_string + "board (" + str(board_id) + ") " + termcolor.colored("edited successfully", "green")
 
                                     await refresh_board(board_id)
